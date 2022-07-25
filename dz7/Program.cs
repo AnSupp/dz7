@@ -25,35 +25,81 @@ namespace dz7
 
      */
 
+    //1#20.12.2021 00:12#Иванов Иван Иванович#25#176#05.05.1992#город Москва
+    //2#15.12.2021 03:12#Алексеев Алексей Иванович#24#176#05.11.1980#город Томск
     class Program
     {
         static void Main(string[] args)
         {
-            Repository repository = new Repository();
-            repository = repository.LoadFileInfo();
+            DoubleLine();
 
-            Console.WriteLine("СПРАВОЧНИК СОТРУДНИКОВ");
+            Console.WriteLine($"{"СПРАВОЧНИК СОТРУДНИКОВ", 34}");
+
+            Repository repository = new Repository();
+
+            //пробуем загрузить файл
+            try
+            {
+                repository = repository.LoadFileInfo();
+            }
+            catch
+            {
+                DoubleLine();
+
+                FileCreate();   //при отсутствии файла автоматически создаем
+                repository = repository.LoadFileInfo();
+
+                Console.WriteLine("Для начала работы создайте хотя бы одну запись.\n");
+
+                DataCreate(ref repository); //и просим пользователя создать запись
+
+            }
 
             byte i;
-
             do
             {
-                for (byte j = 0; j < 35; j++)
-                {
-                    Console.Write("=");
-                }
-                Console.WriteLine("\n1. Вывести данные.\n2. Внести данные.\n3. Выход.");
+                DoubleLine();
+                Console.WriteLine("1. Вывести данные.\n2. Редактировать данные.\n3. Выход.");
                 i = Convert.ToByte(Console.ReadLine());
 
                 switch (i)
                 {
-                    case 1:
-                        DataOutput();
+                    case 1:                                          
+                        //всяческий вывод данных
+                        //проверка на пустоту для избежания ошибок
+                        if (repository.NullCheck())
+                        {
+                            byte k;
+                            do
+                            {
+                                Console.WriteLine("Файл пуст. Создать запись?");
+                                Console.WriteLine("1. Да.\n2. Нет.");
+                                k = Convert.ToByte(Console.ReadLine());
+                        
+                                switch (k)
+                                {
+                                    case 1:
+                                        DataCreate(ref repository);
+                                        k = 2;
+                                        break;
+                                    case 2:
+                                        break;
+                                    default:
+                                        Console.WriteLine("Ошибка выбора");
+                                        break;
+                                }                        
+                            } while (k != 2);
+                        }
+                        else 
+                        {
+                          DataOutput(repository);
+                        }
                         break;
                     case 2:
-                        DataInput();
+                        DataManage(ref repository);
                         break;
                     case 3:
+                        repository.SaveFileInfo();
                         break;
                     default:
                         Console.WriteLine("Ошибка выбора");
@@ -62,55 +108,90 @@ namespace dz7
             } while (i != 3);
         }
 
-        static void DataOutput()
+        static void DataOutput(Repository repository)
         {
-            try
+            byte i;
+            do
             {
-                using (StreamReader sr = new StreamReader(@"Employees.txt"))
+                DoubleLine();
+                Console.WriteLine("1. Вывести список.\n2. Найти сотрудника." +
+                    "\n3. Сортировать по дате создания.\n4. Найти в диапазоне дат.\n5. Назад.");
+                i = Convert.ToByte(Console.ReadLine());
+
+                switch (i)
                 {
-                    string s = string.Empty;
-                    if ((s = sr.ReadLine()) == null)
-                    {
-                        Console.WriteLine("Файл пуст. Добавить записи?");
-                        Console.WriteLine("1. Да.\n2. Нет.");
-                        byte i;
+                    case 1:
+                        repository.FullDataOutput(repository.Employees);
+                        break;
+                    case 2:
+                        repository.NoteOutput();
+                        break;
+                    case 3:
+                        byte k;
                         do
                         {
-                            i = Convert.ToByte(Console.ReadLine());
+                            Console.WriteLine("\nВывести данные в порядке возрастания или убывания ?");
+                            Console.WriteLine("1. В порядке возрастания.\n2. В порядке убывания.\n3. Назад.");
+                            k = Convert.ToByte(Console.ReadLine());
 
-                            switch (i)
-                            {
+                            switch (k) {
                                 case 1:
-                                    sr.Close();
-                                    DataInput();
-                                    return;
+                                    repository.DateCreationSort(true);
+                                    break;
                                 case 2:
+                                    repository.DateCreationSort(false);
+                                    break;
+                                case 3:
                                     break;
                                 default:
                                     Console.WriteLine("Ошибка выбора");
-                                    break;
+                                    break;       
                             }
-                        } while (i != 2);
-                    }
-                    else
-                    {
-                        Console.WriteLine("СПИСОК СОТРУДНИКОВ");
-                        string[] lines = File.ReadAllLines(@"Employees.txt");
-
-                        foreach (var line in lines)
-                        {
-                            Console.WriteLine(line.Replace('#', ' '));
-                        }
-                    }
+                        } while (k != 3);                       
+                        break;
+                    case 4:
+                        repository.RangeDataOutput();
+                        break;
+                    case 5:
+                        break;
+                    default:
+                        Console.WriteLine("Ошибка выбора");
+                        break;
                 }
-            }
-            catch
-            {
-                FileCreate();
-            }
+            } while (i != 5);
         }
 
-        static void DataInput()
+        static void DataManage(ref Repository repository)
+        {
+            byte i;
+            do
+            {
+                DoubleLine();
+                Console.WriteLine("1. Создать запись.\n2. Редактировать запись." +
+                    "\n3. Удалить запись.\n4. Назад.");
+                i = Convert.ToByte(Console.ReadLine());
+
+                switch (i)
+                {
+                    case 1:
+                        DataCreate(ref repository);
+                        break;
+                    case 2:
+                        repository.NoteChange();
+                        break;
+                    case 3:
+                        repository.NoteDelete();
+                        break;
+                    case 4:
+                        break;
+                    default:
+                        Console.WriteLine("Ошибка выбора");
+                        break;
+                }
+            } while (i != 4);
+        }
+
+        static void DataCreate(ref Repository repository) //создание записей
         {
             byte i = 1;
             do
@@ -118,80 +199,12 @@ namespace dz7
                 switch (i)
                 {
                     case 1:
-                        string id = SetID();
+                        repository.NoteCreate();
 
-                        using (StreamWriter sw = new StreamWriter(@"Employees.txt", true))
-                        {
-                            string note = string.Empty;
-                            //1#20.12.2021 00:12#Иванов Иван Иванович#25#176#05.05.1992#город Москва
-
-                            //ID
-                            note += id + '#';
-
-                            //Дату и время добавления записи
-                            string now = DateTime.Now.ToShortDateString();
-                            now += ' ' + DateTime.Now.ToShortTimeString();
-                            note += $"{now}#";
-
-                            //Ф.И.О.
-                            Console.WriteLine("Введите ФИО: ");
-                            note += $"{Console.ReadLine()}#";
-
-                            //Возраст
-                            Console.WriteLine("Введите возраст: ");
-                            note += $"{Console.ReadLine()}#";
-
-                            //Рост
-                            Console.WriteLine("Введите рост: ");
-                            note += $"{Console.ReadLine()}#";
-
-                            //Дату рождения
-                            Console.WriteLine("Введите дату рождения: ");
-                            note += $"{Console.ReadLine()}#";
-
-                            //Место рождения
-                            Console.WriteLine("Введите место рождения: ");
-                            note += $"{Console.ReadLine()}";
-
-                            for (byte j = 0; j < 35; j++)
-                            {
-                                Console.Write("=");
-                            }
-
-                            Console.WriteLine($"Введенная запись:\n{note}");
-                            sw.WriteLine(note);
-
-                            Console.WriteLine("Внести следующего сотрудника?\n1. Да.\n2. Нет");
-                            i = Convert.ToByte(Console.ReadLine());
-                        }
+                        Console.WriteLine("\nВнести следующего сотрудника?\n1. Да.\n2. Нет");
+                        i = Convert.ToByte(Console.ReadLine());                       
                         break;
-                    case 2:
-                        break;
-                    default:
-                        Console.WriteLine("Ошибка выбора");
-                        break;
-                }
-            } while (i == 1);
-        }
-
-        static void FileCreate()
-        {
-            Console.WriteLine("Файла не существует. Создать новый файл?");
-            Console.WriteLine("1. Да.\n2. Нет.");
-            byte i;
-            do
-            {
-                i = Convert.ToByte(Console.ReadLine());
-
-                switch (i)
-                {
-                    case 1:
-                        using (FileStream fs = File.Create(@"Employees.txt"))
-                        {
-                            Console.WriteLine("Файл создан.");
-                        }
-                        return;
-                    case 2:
+                    case 2:                   
                         break;
                     default:
                         Console.WriteLine("Ошибка выбора");
@@ -200,51 +213,21 @@ namespace dz7
             } while (i != 2);
         }
 
-        static string SetID()
+        static void FileCreate()
         {
-            try
+            using (FileStream fs = File.Create(@"Employees.txt"))
             {
-                using (StreamReader sr = new StreamReader(@"Employees.txt"))
-                {
-                    string s = string.Empty;
-                    if ((s = sr.ReadLine()) == null)
-                    {
-                        return "1";
-                    }
-
-                    string[] lines = File.ReadAllLines(@"Employees.txt");
-                    int[] ids = new int[lines.Length];
-                    int i = 0;
-
-                    foreach (var line in lines)
-                    {
-                        int ind = line.IndexOf('#');
-                        string id = line.Substring(0, ind);
-                        ids[i] = Convert.ToInt32(id);
-                        i++;
-                    }
-
-                    Array.Sort(ids);
-                    for (i = 0; i < ids.Length - 1; i++)
-                    {
-                        if (ids[i] != (ids[i + 1] - 1))
-                        {
-                            return Convert.ToString(ids[i] + 1);
-                        }
-                    }
-
-                    return Convert.ToString(ids.Length + 1);
-                }
+                Console.WriteLine("Файл сотрудников создан.");
             }
-            catch
+        }
+
+        static void DoubleLine()
+        {
+            for (byte j = 0; j < 46; j++)
             {
-                using (FileStream fs = File.Create(@"Employees.txt"))
-                {
-                    Console.WriteLine("Файл создан.");
-                    fs.Close();
-                    return SetID();
-                }
+                Console.Write("=");
             }
+            Console.WriteLine();
         }
     }
 }

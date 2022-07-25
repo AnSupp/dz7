@@ -20,11 +20,6 @@ namespace dz7
             Employees = Args;
         }
 
-        //public string this[int index]
-        //{
-        //    get { return this.Employees[index].Print(); }
-        //}
-
         public Repository LoadFileInfo() //первоначальная загрузка из файла
         {
             using (StreamReader sr = new StreamReader(@"Employees.txt"))
@@ -37,32 +32,56 @@ namespace dz7
 
                 foreach (var line in lines)
                 {
-                    
                     string[] subline = line.Split('#');
 
-                    employees[i] = new Employee(Convert.ToInt32(subline[0]), Convert.ToString(subline[1]), Convert.ToString(subline[2]), 
+                    employees[i] = new Employee(Convert.ToInt32(subline[0]), Convert.ToString(subline[1]), Convert.ToString(subline[2]),
                         Convert.ToByte(subline[3]), Convert.ToByte(subline[4]), Convert.ToString(subline[5]), Convert.ToString(subline[6]));
 
                     i++;
-
                 }
                 return new Repository(employees);
             }
         }
 
-        public void FullDataOutput() //вывод всех записей
+        public void SaveFileInfo() //выгруз всех изменений в файл
         {
-            int i = 0;
-            foreach(Employee employee in Employees)
+            using (StreamWriter sw = new StreamWriter(@"Employees.txt"))
             {
-                Employees[i].GetInfo();
-                i++;
-            }         
+                foreach (Employee employee in Employees)
+                {               
+                    sw.WriteLine($"{employee.ID}#{employee.CreationDate}#{employee.FullName}#" +
+                        $"{employee.Age}#{employee.Height}#{employee.BirthDate}#{employee.BirthPlace}");                 
+                }
+            }
         }
 
-        public int SetID() //автоматическое получение ID
+        public bool NullCheck()
         {
             if (Employees.Length == 0)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public void FullDataOutput(Employee[] employees) //вывод всех записей
+        {
+            int i = 0;
+
+            employees[i].Header();
+            foreach (Employee employee in Employees)
+            {
+                employees[i].GetInfo(true);
+                i++;
+            }
+        }
+
+        private int SetID() //автоматическое получение ID
+        {
+            if (Employees == null) //для создания записи сразу после создания файла.
             {
                 return 1;
             }
@@ -79,6 +98,12 @@ namespace dz7
                 }
 
                 Array.Sort(ids);
+
+                if ((ids.Length == 0) || (ids[0] != 1))
+                {
+                    return 1;
+                }
+
                 for (i = 0; i < ids.Length - 1; i++)
                 {
                     if (ids[i] != (ids[i + 1] - 1))
@@ -86,12 +111,12 @@ namespace dz7
                         return (ids[i] + 1);
                     }
                 }
-
+                
                 return (ids.Length + 1);
             }
         }
 
-        public int SearchID(string action) //поиск записи (по ID)
+        private int SearchID(string action) //поиск записи (по ID)
         {
             Console.Write($"Введите ID сотрудника, данные которого необходимо {action}: ");
             int index = Convert.ToInt32(Console.ReadLine());
@@ -101,10 +126,6 @@ namespace dz7
                 if (Employees[i].ID == index)
                 {
                     return i;
-                }
-                else if (i == Employees.Length - 1)
-                {
-                    Console.WriteLine("Сотрудник с данным ID не найден.");      
                 }
             }
             return -1;
@@ -116,18 +137,18 @@ namespace dz7
 
             if (index == -1)
             {
+                Console.WriteLine("Сотрудник с данным ID не найден.");
                 return;
             }
 
-            Employees[index].GetInfo();
+            Employees[index].GetInfo(false);
         }
-        
+
         public void NoteCreate() //создание новой записи
         {
             Employee employee = new Employee();
 
             //1#20.12.2021 00:12#Иванов Иван Иванович#25#176#05.05.1992#город Москва
-
             //ID
             employee.ID = SetID();
 
@@ -135,27 +156,27 @@ namespace dz7
             employee.SetCreationDate();
 
             //Ф.И.О.
-            Console.WriteLine("Введите ФИО: ");
+            Console.Write("Введите ФИО: ");
             employee.FullName = Console.ReadLine();
 
             //Возраст
-            Console.WriteLine("Введите возраст: ");
+            Console.Write("Введите возраст: ");
             employee.Age = Convert.ToByte(Console.ReadLine());
 
             //Рост
-            Console.WriteLine("Введите рост: ");
+            Console.Write("Введите рост: ");
             employee.Height = Convert.ToByte(Console.ReadLine());
 
             //Дату рождения
-            Console.WriteLine("Введите дату рождения: ");
+            Console.Write("Введите дату рождения: ");
             employee.BirthDate = Console.ReadLine();
 
             //Место рождения
-            Console.WriteLine("Введите место рождения: ");
+            Console.Write("Введите место рождения: ");
             employee.BirthPlace = Console.ReadLine();
 
-            Console.WriteLine("Введенная запись:");
-            employee.GetInfo();
+            Console.Write("Введенная запись:\n");
+            employee.GetInfo(false);
 
             //вставка нового значения в конец массива сотрудников
             Employee[] newEmployees = new Employee[Employees.Length + 1];
@@ -166,16 +187,17 @@ namespace dz7
             {
                 newEmployees[i] = Employees[i];
             }
-            
+
             Employees = newEmployees;
         }
-    
+
         public void NoteChange() //изменение записи (по ID)
         {
             int index = SearchID("изменить");
 
             if (index == -1)
             {
+                Console.WriteLine("Сотрудник с данным ID не найден.");
                 return;
             }
 
@@ -183,7 +205,7 @@ namespace dz7
             do
             {
                 Console.WriteLine("Выбранная запись:");
-                Employees[index].GetInfo();
+                Employees[index].GetInfo(false);
 
                 Console.WriteLine("\nКакой параметр необходимо изменить?");
                 Console.WriteLine("1. ФИО.\n2. Возраст.\n3. Рост.\n" +
@@ -224,27 +246,26 @@ namespace dz7
                         Console.WriteLine("Ошибка выбора.");
                         break;
                 }
-
             } while (k != 6);
         }
-    
+
         public void NoteDelete() //удаление записи (по ID)
         {
             int index = SearchID("удалить");
 
             if (index == -1)
             {
+                Console.WriteLine("Сотрудник с данным ID не найден.");
                 return;
             }
 
             Console.WriteLine("Выбранная запись подлежит удалению:");
-            Employees[index].GetInfo();
-            
-            byte k;
+            Employees[index].GetInfo(false);
 
+            byte k;
             do
             {
-                Console.WriteLine("Вы уверены, что хотите удалить запись?\n1. Удалить.\n2. Отмена.");
+                Console.WriteLine("\nВы уверены, что хотите удалить запись?\n1. Удалить.\n2. Отмена.");
                 k = Convert.ToByte(Console.ReadLine());
 
                 switch (k)
@@ -264,6 +285,7 @@ namespace dz7
 
                         Employees = newEmployees;
 
+                        Console.WriteLine("Запись удалена.");
                         return;
                     case 2:
                         break;
@@ -272,30 +294,33 @@ namespace dz7
                         break;
                 }
             } while (k != 2);
-        }   
-    
-        public void DateCreationSort() //сортрировка по дате
+        }
+
+        public void DateCreationSort(bool ascending) //сортрировка по дате
         {
+            Employee[] sortedEmployees = new Employee[Employees.Length];
+            Array.Copy(Employees, sortedEmployees, Employees.Length);
+
             //массив дат под ключи
-            DateTime[] dates = new DateTime[Employees.Length];
+            DateTime[] dates = new DateTime[sortedEmployees.Length];
             int i = 0;
 
-            foreach (Employee employee in Employees)
+            foreach (Employee employee in sortedEmployees)
             {
-                dates[i] = DateTime.Parse(Employees[i].CreationDate, System.Globalization.CultureInfo.CreateSpecificCulture("ru-RU"));
+                dates[i] = DateTime.Parse(sortedEmployees[i].CreationDate, System.Globalization.CultureInfo.CreateSpecificCulture("ru-RU"));
                 i++;
             }
+            
+            Array.Sort(dates, sortedEmployees);
 
-            Array.Sort(dates, Employees);
+            if (!ascending)
+            {
+                Array.Reverse(sortedEmployees);
+            }
 
-            FullDataOutput();
-
-            Array.Reverse(Employees);
-
-            FullDataOutput();
-
+            FullDataOutput(sortedEmployees);
         }
-    
+
         public void RangeDataOutput() //вывод записей в диапазоне дат
         {
             Console.WriteLine("Введите начальную дату: ");
@@ -304,18 +329,22 @@ namespace dz7
             Console.WriteLine("Введите конечную дату: ");
             DateTime date2 = DateTime.Parse(Console.ReadLine(), System.Globalization.CultureInfo.CreateSpecificCulture("ru-RU"));
 
-            Console.WriteLine(date1);
-            Console.WriteLine(date2);
-
             bool empty = true;
+            bool oneTime = false;
 
-            foreach(Employee employee in Employees)
+            foreach (Employee employee in Employees)
             {
                 DateTime date = DateTime.Parse(employee.CreationDate, System.Globalization.CultureInfo.CreateSpecificCulture("ru-RU"));
 
                 if ((date >= date1) && (date <= date2))
                 {
-                    employee.GetInfo();
+                    if (!oneTime)
+                    {
+                        employee.Header();
+                        oneTime = true;
+                    }
+
+                    employee.GetInfo(true);
                     empty = false;
                 }
             }
@@ -391,16 +420,31 @@ namespace dz7
             this.birthPlace = birthPlace;
         }
 
-        public void GetInfo() //вывод записи на экран
-        {   
-            Console.WriteLine($"{id} {creationDate, -16} {fullName, -25} {age} {height} {birthDate, -10} {birthPlace}");
+        public void GetInfo(bool fullList) //вывод записей на экран
+        {
+            if (!fullList)
+            {
+                Header();
+            }
+
+            Console.WriteLine($"{id,-4} {creationDate,-18} {fullName,-28} {age,-8} {height,-5} {birthDate,-14} {birthPlace,-15}");
+        }
+
+        public void Header()
+        {
+            Console.WriteLine($"\n{"ID",-4} {"Дата заметки",-18} {"ФИО",-28} " +
+                   $"{"Возраст",-8} {"Рост",-5} {"Дата рождения",-14} {"Место рождения",-15}");
+            for (int i = 0; i < 97; i++)
+            {
+                Console.Write("—");
+            }
+            Console.WriteLine();
         }
 
         public void SetCreationDate() //получаем время записи
         {
-            string now = DateTime.Now.ToString("g", System.Globalization.CultureInfo.CreateSpecificCulture("ru-RU")); 
+            string now = DateTime.Now.ToString("g", System.Globalization.CultureInfo.CreateSpecificCulture("ru-RU"));
             creationDate = now;
         }
-
     }
 }
